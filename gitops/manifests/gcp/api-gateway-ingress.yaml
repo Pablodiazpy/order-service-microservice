@@ -1,0 +1,211 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway-ingress
+  namespace: research-apps
+  labels:
+    app: api-gateway
+    methodology: gitops
+    managed-by: argocd
+    research-phase: multicloud-gitops-research
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://34.95.5.30.nip.io,http://34.95.5.30.nip.io,http://34.118.167.199.nip.io,https://ecommerce-microservices-platform.vercel.app,https://ecommerce-app-omega-two-64.vercel.app,http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:50951,https://ecommerce-cart-service-f2a908c60d8a.herokuapp.com,https://ecommerce-product-service-56575270905a.herokuapp.com,https://ecommerce-microservices-platform.onrender.com,http://techmart-controller.uksouth.azurecontainer.io:3000"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - 34.95.5.30.nip.io
+      secretName: api-gateway-tls
+
+  rules:
+    - host: 34.95.5.30.nip.io
+      http:
+        paths:
+          # Order Service Routes - ALL DIRECT MAPPING (NO REWRITE)
+          - path: /openapi.json
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /docs
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /redoc
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /order/docs
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /order/redoc  
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /order/openapi.json
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /orders/docs
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /orders/redoc
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /orders/openapi.json
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /orders/health
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          
+          - path: /order/health
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+          # Missing API routes
+          - path: /orders
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+                  
+          - path: /admin/orders
+            pathType: Exact  
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+                  
+          - path: /admin/orders/stats
+            pathType: Exact
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+
+          # Order Service API Routes - DIRECT MAPPING
+          - path: /orders(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+
+          - path: /order(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8081
+
+          # User Service Routes - KEEP REWRITE FOR USER SERVICE ONLY
+          - path: /user(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 9090
+          
+          - path: /user/health
+            pathType: Exact
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 9090
+          
+          - path: /api/status
+            pathType: Exact
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 9090
+
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 9090

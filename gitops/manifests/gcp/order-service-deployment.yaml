@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service-deployment
+  namespace: research-apps
+  labels:
+    app: order-service
+    methodology: gitops
+    pipeline-type: argocd
+    research-phase: multicloud-gitops-research
+    managed-by: argocd
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0 # Keep old pod running during update
+      maxSurge: 1 # Allow 1 new pod to be created
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+        methodology: gitops
+        pipeline-type: argocd
+    spec:
+      containers:
+        - name: order-service
+          image: kousaila/order-service:gitops-4b97134
+          imagePullPolicy: Always
+          env:
+            # 🔧 CRITICAL FIX: Updated to correct database with SSL
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://neondb_owner:npg_X1tanrOKzW3g@ep-falling-thunder-aeahcn3d-pooler.c-2.us-east-2.aws.neon.tech/neondb"            
+            # ✅ Service URLs (Updated to HTTPS)
+            - name: USER_SERVICE_URL
+              value: "https://34.95.5.30.nip.io/user"
+            - name: CART_SERVICE_URL
+              value: "https://ecommerce-cart-service-f2a908c60d8a.herokuapp.com"
+            - name: PRODUCT_SERVICE_URL
+              value: "https://ecommerce-product-service-56575270905a.herokuapp.com"
+            - name: SEARCH_SERVICE_URL
+              value: "https://ecommerce-microservices-platform.onrender.com"
+            
+            # ✅ Security Configuration (Matches User Service)
+            - name: SECRET_KEY
+              value: "dyO5kHriKkZm_8tSzTxZOmKGd0iGhMLPusNi61pi5bU4MxJ12SZ2B0-iznJrLP-DTPsHDbao3_QduMo2TVpOCA"
+            - name: ALGORITHM
+              value: HS256
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: "30"
+            
+            # ✅ CORS Configuration (Complete)
+            - name: CORS_ORIGINS
+              value: "https://ecommerce-app-omega-two-64.vercel.app,https://ecommerce-microservices-platform.vercel.app,http://34.95.5.30.nip.io,https://34.95.5.30.nip.io,http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:50951,https://ecommerce-cart-service-f2a908c60d8a.herokuapp.com,https://ecommerce-product-service-56575270905a.herokuapp.com,https://ecommerce-microservices-platform.onrender.com,http://techmart-controller.uksouth.azurecontainer.io:3000"
+            - name: CORS_METHODS
+              value: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            - name: CORS_HEADERS
+              value: "Content-Type,Authorization,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers"
+            - name: CORS_CREDENTIALS
+              value: "true"
+            
+            # ✅ Redis Configuration
+            - name: REDIS_URL
+              value: "redis://discrete-raccoon-6606.upstash.io:6379"
+            
+            # 🔧 NEW: Service Configuration
+            - name: SERVICE_NAME
+              value: "order-service"
+            - name: SERVICE_PORT
+              value: "8081"
+            - name: SERVICE_HOST
+              value: "0.0.0.0"
+            - name: ENVIRONMENT
+              value: "production"
+            - name: LOG_LEVEL
+              value: "INFO"
+              
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "150m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          
+          # Enhanced health checks for better reliability
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 45
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 40
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: research-apps
+  labels:
+    app: order-service
+    methodology: gitops
+    managed-by: argocd
+spec:
+  selector:
+    app: order-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http
+  type: NodePort
